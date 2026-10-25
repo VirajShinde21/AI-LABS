@@ -1,0 +1,473 @@
+LAB 1
+class VacuumAgent :
+    def __init__(self) :
+        self.location="A"
+
+    def act(self,status):
+        if status == "Dirty":
+            return "Suck"
+        elif self.location=="A":
+            return "Move Right"
+        else :
+            return "Move Left"
+
+        
+
+rooms={"A":"Dirty","B":"Dirty"}
+agent=VacuumAgent()
+
+for step in range(1,5):
+        location=agent.location
+        status=rooms[location]
+        action=agent.act(status)
+
+        print("Step:",step,"Location:",location,"Status:",status,"Action:",action)
+
+        if action=="Suck":
+            rooms[location]="Clean"
+        elif action=="Move Right" :
+            agent.location="B"
+        else:
+            agent.location="A"
+
+            print("Room status:",rooms)
+
+            print("Final status:",rooms)
+
+
+LAB 2
+import heapq
+
+GOAL = (1, 2, 3,
+        4, 5, 6,
+        7, 8, 0)
+
+
+def heuristic(state):
+    distance = 0
+
+    for i, value in enumerate(state):
+
+        if value == 0:
+            continue
+
+        current_row = i // 3
+        current_col = i % 3
+
+        goal_index = GOAL.index(value)
+
+        goal_row = goal_index // 3
+        goal_col = goal_index % 3
+
+        distance += abs(current_row - goal_row)
+        distance += abs(current_col - goal_col)
+
+    return distance
+
+
+def get_neighbors(state):
+
+    neighbors = []
+
+    blank = state.index(0)
+
+    row = blank // 3
+    col = blank % 3
+
+    moves = [
+        (-1, 0),   # Up
+        (1, 0),    # Down
+        (0, -1),   # Left
+        (0, 1)     # Right
+    ]
+
+    for dr, dc in moves:
+
+        new_row = row + dr
+        new_col = col + dc
+
+        if 0 <= new_row < 3 and 0 <= new_col < 3:
+
+            new_blank = new_row * 3 + new_col
+
+            new_state = list(state)
+
+            new_state[blank], new_state[new_blank] =  new_state[new_blank], new_state[blank]
+
+            neighbors.append(tuple(new_state))
+
+    return neighbors
+
+
+def a_star(start):
+
+    priority_queue = []
+
+    h = heuristic(start)
+
+    heapq.heappush(priority_queue, (h, 0, start, []))
+
+    visited = set()
+
+    while priority_queue:
+
+        f, g, state, path = heapq.heappop(priority_queue)
+
+        if state in visited:
+            continue
+
+        visited.add(state)
+
+        path = path + [state]
+
+        if state == GOAL:
+            return path
+
+        for neighbor in get_neighbors(state):
+
+            if neighbor not in visited:
+
+                new_g = g + 1
+                new_h = heuristic(neighbor)
+                new_f = new_g + new_h
+
+                heapq.heappush(
+                    priority_queue,
+                    (new_f, new_g, neighbor, path)
+                )
+
+    return None
+
+
+def print_state(state):
+
+    for i in range(0, 9, 3):
+
+        row = state[i:i + 3]
+
+        print(
+            " ".join("_" if x == 0 else str(x)
+                    for x in row)
+        )
+
+    print()
+
+
+
+print("========== A* Search for 8-Puzzle ==========")
+
+start = tuple(
+    map(
+        int,
+        input(
+            "Enter initial state (use 0 for blank): "
+        ).split()
+    )
+)
+
+solution = a_star(start)
+
+if solution:
+
+    print("\nSolution Found!")
+    print("Number of moves:", len(solution) - 1)
+
+    print("\nSolution Path:")
+
+    for step, state in enumerate(solution):
+
+        print("Step", step)
+        print_state(state)
+
+else:
+    print("No solution found.")
+
+
+
+LAB 3
+
+def hanoi_state_space(n):
+    source = list(range(n, 0, -1))
+    auxiliary = []
+    destination = []
+
+    pegs = [source, auxiliary, destination]
+    names = ["Source", "Auxiliary", "Destination"]
+
+    moves = []
+
+    def move_disk(src, dst):
+        if not pegs[src]:
+            return False
+
+        if pegs[dst] and pegs[dst][-1] < pegs[src][-1]:
+            return False
+
+        disk = pegs[src].pop()
+        pegs[dst].append(disk)
+
+        moves.append(
+            f"Move disk {disk} from {names[src]} to {names[dst]}"
+        )
+        return True
+
+    def solve(k, src, aux, dst):
+        if k == 0:
+            return
+
+        solve(k - 1, src, dst, aux)
+        move_disk(src, dst)
+        solve(k - 1, aux, src, dst)
+
+    print("========== Tower of Hanoi ==========")
+    print("Initial State:", pegs)
+
+    solve(n, 0, 1, 2)
+
+    print("\nSolution Path:")
+    for i, move in enumerate(moves, 1):
+        print(f"{i}. {move}")
+
+    print("\nGoal State:", pegs)
+    print("Total Moves:", len(moves))
+
+
+n = int(input("Enter number of disks: "))
+hanoi_state_space(n)
+
+
+LAB 4
+# Adversarial Search using Alpha-Beta Pruning
+
+def minimax(depth, node, maximizing, values, alpha, beta):
+
+    if depth == 2:
+        return values[node]
+
+    if maximizing:
+        best = float('-inf')
+
+        for i in range(2):
+            value = minimax(depth + 1, node * 2 + i,
+                            False, values, alpha, beta)
+
+            best = max(best, value)
+            alpha = max(alpha, best)
+
+            if alpha >= beta:
+                break
+
+        return best
+
+    else:
+        best = float('inf')
+
+        for i in range(2):
+            value = minimax(depth + 1, node * 2 + i,
+                            True, values, alpha, beta)
+
+            best = min(best, value)
+            beta = min(beta, best)
+
+            if alpha >= beta:
+                break
+
+        return best
+
+
+values = [3, 5, 6, 9, 1, 2, 0, -1]
+
+result = minimax(0, 0, True, values,
+                float('-inf'), float('inf'))
+
+print("Optimal value:", result)
+
+LAB 5
+import re
+
+rules = [
+    (r"hello|hi", "Hello!"),
+    (r"how are you", "I am fine"),
+    (r"your name", "I am SimpleBot"),
+    (r"bye|exit", "Goodbye!")
+]
+
+def chatbot(user):
+    for pattern, reply in rules:
+        if re.search(pattern, user.lower()):
+            return reply
+    return "Sorry, I don't understand"
+
+while True:
+    user = input("You: ")
+    print("Bot:", chatbot(user))
+
+    if re.search(r"bye|exit", user.lower()):
+        break
+
+LAB 6
+# 8-Queens using Backtracking
+
+N = 8
+board = [-1] * N
+
+def safe(row, col):
+    for i in range(row):
+        if board[i] == col or abs(board[i] - col) == abs(i - row):
+            return False
+    return True
+
+def solve(row):
+    if row == N:
+        return True
+
+    for col in range(N):
+        if safe(row, col):
+            board[row] = col
+
+            if solve(row + 1):
+                return True
+
+            board[row] = -1
+
+    return False
+
+if solve(0):
+    for row in range(N):
+        print("." * board[row] + "Q" + "." * (N - board[row] - 1))
+
+LAB7
+def goal_stack_planning():
+    state = {"OnTable(A)", "OnTable(B)", "OnTable(C)",
+             "Clear(A)", "Clear(B)", "Clear(C)", "HandEmpty"}
+
+    actions = []
+
+    # Place A on B
+    actions.append("PickUp(A)")
+    actions.append("Stack(A,B)")
+    state.add("On(A,B)")
+
+    # Place B on C
+    actions.append("UnStack(A,B)")
+    actions.append("PutDown(A)")
+    actions.append("PickUp(B)")
+    actions.append("Stack(B,C)")
+    state.add("On(B,C)")
+
+    print("Initial State: A, B, C on table")
+    print("Goal State: A on B, B on C")
+    print("\nPlan Generated:")
+
+    for i, action in enumerate(actions, 1):
+        print("Step", i, ":", action)
+
+    print("\nGoal Achieved!")
+
+goal_stack_planning()
+
+LAB 8
+board = [" " for i in range(9)]
+
+def display():
+    print(board[0], "|", board[1], "|", board[2])
+    print("--+---+--")
+    print(board[3], "|", board[4], "|", board[5])
+    print("--+---+--")
+    print(board[6], "|", board[7], "|", board[8])
+
+def winner():
+    win = [(0,1,2), (3,4,5), (6,7,8),
+           (0,3,6), (1,4,7), (2,5,8),
+           (0,4,8), (2,4,6)]
+
+    for a, b, c in win:
+        if board[a] == board[b] == board[c] and board[a] != " ":
+            return board[a]
+
+    if " " not in board:
+        return "Draw"
+    return None
+
+def minimax(maximizing):
+    result = winner()
+
+    if result == "O":
+        return 1
+    if result == "X":
+        return -1
+    if result == "Draw":
+        return 0
+
+    if maximizing:
+        best = -100
+
+        for i in range(9):
+            if board[i] == " ":
+                board[i] = "O"
+                score = minimax(False)
+                board[i] = " "
+                best = max(best, score)
+
+        return best
+
+    else:
+        best = 100
+
+        for i in range(9):
+            if board[i] == " ":
+                board[i] = "X"
+                score = minimax(True)
+                board[i] = " "
+                best = min(best, score)
+
+        return best
+
+def best_move():
+    best = -100
+    move = 0
+
+    for i in range(9):
+        if board[i] == " ":
+            board[i] = "O"
+            score = minimax(False)
+            board[i] = " "
+
+            if score > best:
+                best = score
+                move = i
+
+    return move
+
+print("TIC-TAC-TOE")
+print("You are X and AI is O")
+print("Positions: 1 to 9")
+
+while True:
+    display()
+    pos = int(input("Enter position (1-9): ")) - 1
+
+    if pos < 0 or pos > 8 or board[pos] != " ":
+        print("Invalid move!")
+        continue
+
+    board[pos] = "X"
+    result = winner()
+
+    if result:
+        display()
+        print("Result:", result)
+        break
+
+    pos = best_move()
+    board[pos] = "O"
+    print("AI selected:", pos + 1)
+
+    result = winner()
+    if result:
+        display()
+        print("Result:", result)
+        break
+
+
+
